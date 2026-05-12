@@ -201,6 +201,7 @@ export function useQuizSocket() {
           selectedOption: null,
           answerAccepted: false,
           countdown: message.payload.question?.timeLimit || 30,
+          answeredCount: 0,
         }));
         break;
 
@@ -219,27 +220,46 @@ export function useQuizSocket() {
         break;
 
       case "round_result":
-        setState((prev) => ({
-          ...prev,
-          phase: "showAnswer",
-          correctAnswer: message.payload.correctAnswer,
-          correctOption: message.payload.correctOption,
-          leaderboard: message.payload.leaderboard || prev.leaderboard,
-        }));
+        setState((prev) => {
+          const newLeaderboard = message.payload.leaderboard;
+          const myEntry =
+            Array.isArray(newLeaderboard) && prev.myName
+              ? newLeaderboard.find((e: any) => e.name === prev.myName)
+              : undefined;
+          return {
+            ...prev,
+            phase: "showAnswer",
+            correctAnswer: message.payload.correctAnswer,
+            correctOption: message.payload.correctOption,
+            leaderboard: newLeaderboard !== undefined ? newLeaderboard : prev.leaderboard,
+            myScore: myEntry ? myEntry.score : prev.myScore,
+          };
+        });
         break;
 
       case "game_finished":
-        setState((prev) => ({
-          ...prev,
-          phase: "finished",
-          leaderboard: message.payload.leaderboard || prev.leaderboard,
-        }));
+        setState((prev) => {
+          const newLeaderboard = message.payload.leaderboard;
+          const myEntry =
+            Array.isArray(newLeaderboard) && prev.myName
+              ? newLeaderboard.find((e: any) => e.name === prev.myName)
+              : undefined;
+          return {
+            ...prev,
+            phase: "finished",
+            leaderboard: newLeaderboard !== undefined ? newLeaderboard : prev.leaderboard,
+            myScore: myEntry ? myEntry.score : prev.myScore,
+          };
+        });
         break;
 
       case "leaderboard":
         setState((prev) => ({
           ...prev,
-          leaderboard: message.payload.leaderboard,
+          leaderboard:
+            message.payload.leaderboard !== undefined
+              ? message.payload.leaderboard
+              : prev.leaderboard,
         }));
         break;
 
@@ -252,7 +272,10 @@ export function useQuizSocket() {
           totalQuestions:
             message.payload.totalQuestions || prev.totalQuestions,
           playerCount: message.payload.playerCount ?? prev.playerCount,
-          leaderboard: message.payload.leaderboard || prev.leaderboard,
+          leaderboard:
+            message.payload.leaderboard !== undefined
+              ? message.payload.leaderboard
+              : prev.leaderboard,
         }));
         break;
 
