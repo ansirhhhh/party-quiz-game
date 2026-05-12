@@ -37,6 +37,7 @@ export default function Host() {
     clearError,
     clearExport,
     connect,
+    restartGame,
   } = useQuizSocket();
   const [authenticated, setAuthenticated] = useState(false);
 
@@ -213,12 +214,7 @@ export default function Host() {
                 <>
                   <button onClick={() => exportResults?.()} style={{ flex: 1, padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#fff", backgroundColor: "#9333ea", border: "none", borderRadius: "8px", cursor: "pointer" }}>📥 导出比赛结果</button>
                   <button
-                    onClick={() => {
-                      const ws = new WebSocket(`ws://${window.location.host}/ws/quiz`);
-                      ws.onopen = () => ws.send(JSON.stringify({ type: "host_login", payload: { password: "3251" } }));
-                      ws.onmessage = (e) => { const msg = JSON.parse(e.data); if (msg.type === "host_authenticated" && msg.payload.success) ws.send(JSON.stringify({ type: "restart_game" })); };
-                      setTimeout(() => ws.close(), 2000);
-                    }}
+                    onClick={() => restartGame?.()}
                     style={{ padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#4ade80", backgroundColor: "#064e3b", border: "2px solid #22c55e", borderRadius: "8px", cursor: "pointer" }}
                   >🔄 重启比赛</button>
                 </>
@@ -226,12 +222,7 @@ export default function Host() {
 
               {(state.phase === "waiting" || state.phase === "showAnswer") && (
                 <button
-                  onClick={() => {
-                    const ws = new WebSocket(`ws://${window.location.host}/ws/quiz`);
-                    ws.onopen = () => ws.send(JSON.stringify({ type: "host_login", payload: { password: "3251" } }));
-                    ws.onmessage = (e) => { const msg = JSON.parse(e.data); if (msg.type === "host_authenticated" && msg.payload.success) ws.send(JSON.stringify({ type: "restart_game" })); };
-                    setTimeout(() => ws.close(), 2000);
-                  }}
+                  onClick={() => restartGame?.()}
                   style={{ padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#4ade80", backgroundColor: "#064e3b", border: "2px solid #22c55e", borderRadius: "8px", cursor: "pointer" }}
                 >🔄 重启比赛</button>
               )}
