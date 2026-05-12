@@ -211,7 +211,7 @@ export function finishGame() {
 // 获取排行榜（按分数排序）
 export function getLeaderboard() {
   return Array.from(gameState.players.values())
-    .filter((p) => p.connected || p.score > 0)
+    .filter((p) => p.connected || p.score > 0 || p.answers.length > 0)
     .sort((a, b) => b.score - a.score)
     .map((p, index) => ({
       rank: index + 1,
@@ -223,6 +223,7 @@ export function getLeaderboard() {
 
 // 导出比赛结果
 export function exportResults(): string {
+  const allPlayers = Array.from(gameState.players.values());
   const leaderboard = getLeaderboard();
   const lines: string[] = [];
   lines.push("=".repeat(50));
@@ -230,7 +231,7 @@ export function exportResults(): string {
   lines.push("=".repeat(50));
   lines.push(`比赛时间: ${new Date().toLocaleString("zh-CN")}`);
   lines.push(`总题目数: ${gameState.questions.length}`);
-  lines.push(`参赛人数: ${leaderboard.length}`);
+  lines.push(`参赛人数: ${allPlayers.length}`);
   lines.push("-".repeat(50));
   lines.push("排行榜:");
   leaderboard.forEach((p, i) => {
@@ -245,7 +246,7 @@ export function exportResults(): string {
     lines.push(`题目: ${q.question}`);
     lines.push(`正确答案: ${String.fromCharCode(65 + q.correctAnswer)}. ${q.options[q.correctAnswer]}`);
     lines.push("答题情况:");
-    gameState.players.forEach((p) => {
+    allPlayers.forEach((p) => {
       const ans = p.answers.find((a) => a.questionId === q.id);
       if (ans) {
         const status = ans.isCorrect ? "正确" : "错误";

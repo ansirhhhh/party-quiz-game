@@ -278,11 +278,13 @@ export function initQuizWebSocket(server: Server) {
           return;
         }
 
-        // 检查是否有重名
+        const trimmedName = name.trim();
+
+        // 检查是否有重名（只允许已断开的同名玩家重新加入）
         const existing = Array.from(state.players.values()).find(
-          (p) => p.name === name.trim()
+          (p) => p.name === trimmedName
         );
-        if (existing && existing.id !== clientId) {
+        if (existing && existing.connected && existing.id !== clientId) {
           ws.send(
             JSON.stringify({
               type: "player_joined",
@@ -292,7 +294,16 @@ export function initQuizWebSocket(server: Server) {
           return;
         }
 
-        const player = addPlayer(clientId, name.trim());
+        // 如果同名玩家已断开，复用其数据
+        let player;
+        if (existing && !existing.connected) {
+          existing.id = clientId;
+          existing.connected = true;
+          player = existing;
+        } else {
+          player = addPlayer(clientId, trimmedName);
+        }
+
         ws.send(
           JSON.stringify({
             type: "player_joined",
