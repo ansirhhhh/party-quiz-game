@@ -68,6 +68,17 @@ const initialState: QuizState = {
   exportData: null,
 };
 
+function findMyEntry(leaderboard: any[] | undefined, myName: string): any | undefined {
+  if (!Array.isArray(leaderboard) || !myName) return undefined;
+  const exactMatch = leaderboard.find((e) => e.name === myName);
+  if (exactMatch) return exactMatch;
+  const myLower = myName.trim().toLowerCase();
+  return leaderboard.find((e) => {
+    const eName = (e.name || "").trim().toLowerCase();
+    return eName === myLower;
+  });
+}
+
 export function useQuizSocket() {
   const [state, setState] = useState<QuizState>(initialState);
   const wsRef = useRef<WebSocket | null>(null);
@@ -222,10 +233,7 @@ export function useQuizSocket() {
       case "round_result":
         setState((prev) => {
           const newLeaderboard = message.payload.leaderboard;
-          const myEntry =
-            Array.isArray(newLeaderboard) && prev.myName
-              ? newLeaderboard.find((e: any) => e.name === prev.myName)
-              : undefined;
+          const myEntry = findMyEntry(newLeaderboard, prev.myName);
           return {
             ...prev,
             phase: "showAnswer",
@@ -240,10 +248,7 @@ export function useQuizSocket() {
       case "game_finished":
         setState((prev) => {
           const newLeaderboard = message.payload.leaderboard;
-          const myEntry =
-            Array.isArray(newLeaderboard) && prev.myName
-              ? newLeaderboard.find((e: any) => e.name === prev.myName)
-              : undefined;
+          const myEntry = findMyEntry(newLeaderboard, prev.myName);
           return {
             ...prev,
             phase: "finished",
@@ -254,12 +259,21 @@ export function useQuizSocket() {
         break;
 
       case "leaderboard":
+        setState((prev) => {
+          const newLeaderboard = message.payload.leaderboard;
+          const myEntry = findMyEntry(newLeaderboard, prev.myName);
+          return {
+            ...prev,
+            leaderboard: newLeaderboard !== undefined ? newLeaderboard : prev.leaderboard,
+            myScore: myEntry ? myEntry.score : prev.myScore,
+          };
+        });
+        break;
+
+      case "player_score":
         setState((prev) => ({
           ...prev,
-          leaderboard:
-            message.payload.leaderboard !== undefined
-              ? message.payload.leaderboard
-              : prev.leaderboard,
+          myScore: message.payload.score,
         }));
         break;
 
@@ -297,6 +311,19 @@ export function useQuizSocket() {
         setState((prev) => ({
           ...prev,
           exportData: message.payload.data,
+        }));
+        break;
+
+      case "game_restarted":
+        setState(() => ({
+          ...initialState,
+          connected: true,
+          isHost: true,
+          phase: message.payload?.phase || "waiting",
+          playerCount: message.payload?.playerCount || 0,
+          leaderboard: message.payload?.leaderboard || [],
+          currentQuestion: message.payload?.currentQuestion || 0,
+          totalQuestions: message.payload?.totalQuestions || 10,
         }));
         break;
 
@@ -363,6 +390,11 @@ export function useQuizSocket() {
     sendMessage("export_results");
   }, [sendMessage]);
 
+  // 重启比赛
+  const restartGame = useCallback(() => {
+    sendMessage("restart_game");
+  }, [sendMessage]);
+
   // 获取排行榜
   const getLeaderboard = useCallback(() => {
     sendMessage("get_leaderboard");
@@ -396,6 +428,7 @@ export function useQuizSocket() {
     endRound,
     finishGame,
     exportResults,
+    restartGame,
     getLeaderboard,
     clearError,
     clearExport,

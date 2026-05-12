@@ -33,5 +33,5 @@ if (env.isProduction) {
   });
 
   // 初始化WebSocket服务器
-  initQuizWebSocket(server);
+  initQuizWebSocket(server as import("node:http").Server);
 }

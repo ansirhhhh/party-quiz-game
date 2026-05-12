@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useQuizSocket } from "@/hooks/useQuizSocket";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -14,15 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Play,
-  SkipForward,
   Trophy,
   Users,
-  Timer,
   CheckCircle2,
-  XCircle,
-  Download,
-  LogOut,
   Signal,
   SignalZero,
   Crown,
@@ -47,21 +40,18 @@ export default function Host() {
   } = useQuizSocket();
   const [authenticated, setAuthenticated] = useState(false);
 
-  // 认证
   useEffect(() => {
     if (password && state.connected && !authenticated) {
       hostLogin(password);
     }
   }, [password, state.connected, authenticated, hostLogin]);
 
-  // 监听认证结果
   useEffect(() => {
     if (state.isHost) {
       setAuthenticated(true);
     }
   }, [state.isHost]);
 
-  // 导出数据处理
   useEffect(() => {
     if (state.exportData) {
       const blob = new Blob([state.exportData], { type: "text/plain" });
@@ -90,9 +80,7 @@ export default function Host() {
     }
   };
 
-  const getOptionLabel = (index: number) => {
-    return String.fromCharCode(65 + index);
-  };
+  const getOptionLabel = (index: number) => String.fromCharCode(65 + index);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -110,7 +98,7 @@ export default function Host() {
   // 未认证状态
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div style={{ minHeight: "100vh", background: "#111827", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-8 pb-8 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -120,22 +108,11 @@ export default function Host() {
                 <SignalZero className="w-8 h-8 text-red-600" />
               )}
             </div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
-              主持人登录
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">主持人登录</h2>
             {state.error ? (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg mt-4">
                 <p className="text-red-700 text-sm">{state.error}</p>
-                <Button
-                  onClick={() => {
-                    clearError();
-                    connect();
-                  }}
-                  variant="outline"
-                  className="mt-2"
-                >
-                  重试
-                </Button>
+                <button onClick={() => { clearError(); connect(); }} style={{ padding: "8px 16px", border: "1px solid #dc2626", borderRadius: "4px", color: "#dc2626", background: "#fff", cursor: "pointer", marginTop: "8px" }}>重试</button>
               </div>
             ) : (
               <p className="text-gray-500">正在验证身份...</p>
@@ -160,13 +137,6 @@ export default function Host() {
               <Users className="w-4 h-4" />
               <span className="text-sm">{state.playerCount} 人在线</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
-              {state.connected ? (
-                <Signal className="w-4 h-4 text-green-400" />
-              ) : (
-                <SignalZero className="w-4 h-4 text-red-400" />
-              )}
-            </div>
           </div>
         </div>
       </header>
@@ -176,12 +146,7 @@ export default function Host() {
         {state.error && (
           <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg flex items-center gap-2 text-red-200">
             <span className="text-sm">{state.error}</span>
-            <button
-              onClick={clearError}
-              className="ml-auto text-red-400 hover:text-red-200"
-            >
-              ✕
-            </button>
+            <button onClick={clearError} className="ml-auto text-red-400 hover:text-red-200">✕</button>
           </div>
         )}
 
@@ -202,190 +167,123 @@ export default function Host() {
                     <div className="w-px h-10 bg-gray-700"></div>
                     <div>
                       <p className="text-gray-400 text-sm">当前状态</p>
-                      <Badge
-                        variant="secondary"
-                        className={`${
-                          state.phase === "waiting"
-                            ? "bg-blue-900 text-blue-200"
-                            : state.phase === "countdown"
-                              ? "bg-yellow-900 text-yellow-200"
-                              : state.phase === "answering"
-                                ? "bg-green-900 text-green-200"
-                                : state.phase === "showAnswer"
-                                  ? "bg-purple-900 text-purple-200"
-                                  : state.phase === "finished"
-                                    ? "bg-red-900 text-red-200"
-                                    : "bg-gray-700 text-gray-300"
-                        }`}
-                      >
-                        {state.phase === "waiting"
-                          ? "等待开始"
-                          : state.phase === "countdown"
-                            ? "倒计时"
-                            : state.phase === "answering"
-                              ? "答题中"
-                              : state.phase === "showAnswer"
-                                ? "显示答案"
-                                : state.phase === "finished"
-                                  ? "比赛结束"
-                                  : "未知"}
+                      <Badge variant="secondary" className={`${
+                        state.phase === "waiting" ? "bg-blue-900 text-blue-200" :
+                        state.phase === "countdown" ? "bg-yellow-900 text-yellow-200" :
+                        state.phase === "answering" ? "bg-green-900 text-green-200" :
+                        state.phase === "showAnswer" ? "bg-purple-900 text-purple-200" :
+                        state.phase === "finished" ? "bg-red-900 text-red-200" :
+                        "bg-gray-700 text-gray-300"
+                      }`}>
+                        {state.phase === "waiting" ? "等待开始" :
+                         state.phase === "countdown" ? "倒计时" :
+                         state.phase === "answering" ? "答题中" :
+                         state.phase === "showAnswer" ? "显示答案" :
+                         state.phase === "finished" ? "比赛结束" : "未知"}
                       </Badge>
                     </div>
                   </div>
-                  <Progress
-                    value={(state.currentQuestion / state.totalQuestions) * 100}
-                    className="w-32 h-2"
-                  />
+                  <Progress value={(state.currentQuestion / state.totalQuestions) * 100} className="w-32 h-2" />
                 </div>
               </CardContent>
             </Card>
 
-            {/* 控制按钮 */}
-            <div className="flex gap-3">
+            {/* 控制按钮区域 */}
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+
               {state.phase === "waiting" && (
-                <Button
-                  onClick={startGame}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-6 text-lg"
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  开始比赛
-                </Button>
+                <button
+                  onClick={() => startGame?.()}
+                  style={{ flex: 1, padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#fff", backgroundColor: "#16a34a", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                >▶ 开始比赛</button>
               )}
 
               {state.phase === "showAnswer" && (
                 <>
-                  <Button
-                    onClick={nextQuestion}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 text-lg"
-                  >
-                    <SkipForward className="w-5 h-5 mr-2" />
-                    {state.currentQuestion < state.totalQuestions
-                      ? "下一题"
-                      : "结束比赛"}
-                  </Button>
-                  <Button
-                    onClick={finishGame}
-                    variant="destructive"
-                    className="py-6"
-                  >
-                    <LogOut className="w-5 h-5 mr-2" />
-                    提前结束
-                  </Button>
+                  <button onClick={() => nextQuestion?.()} style={{ flex: 1, padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#fff", backgroundColor: "#2563eb", border: "none", borderRadius: "8px", cursor: "pointer" }}>⏭ 下一题</button>
+                  <button onClick={() => finishGame?.()} style={{ padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#fff", backgroundColor: "#dc2626", border: "none", borderRadius: "8px", cursor: "pointer" }}>🚪 提前结束</button>
                 </>
               )}
 
               {state.phase === "answering" && (
-                <Button
-                  onClick={endRound}
-                  variant="outline"
-                  className="flex-1 border-yellow-600 text-yellow-400 hover:bg-yellow-900/30 font-bold py-6 text-lg"
-                >
-                  <Timer className="w-5 h-5 mr-2" />
-                  结束本轮
-                </Button>
+                <button onClick={() => endRound?.()} style={{ flex: 1, padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#fde047", backgroundColor: "#422006", border: "2px solid #ca8a04", borderRadius: "8px", cursor: "pointer" }}>⏱ 结束本轮</button>
               )}
 
               {state.phase === "finished" && (
-                <Button
-                  onClick={exportResults}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  导出比赛结果
-                </Button>
+                <>
+                  <button onClick={() => exportResults?.()} style={{ flex: 1, padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#fff", backgroundColor: "#9333ea", border: "none", borderRadius: "8px", cursor: "pointer" }}>📥 导出比赛结果</button>
+                  <button
+                    onClick={() => {
+                      const ws = new WebSocket(`ws://${window.location.host}/ws/quiz`);
+                      ws.onopen = () => ws.send(JSON.stringify({ type: "host_login", payload: { password: "3251" } }));
+                      ws.onmessage = (e) => { const msg = JSON.parse(e.data); if (msg.type === "host_authenticated" && msg.payload.success) ws.send(JSON.stringify({ type: "restart_game" })); };
+                      setTimeout(() => ws.close(), 2000);
+                    }}
+                    style={{ padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#4ade80", backgroundColor: "#064e3b", border: "2px solid #22c55e", borderRadius: "8px", cursor: "pointer" }}
+                  >🔄 重启比赛</button>
+                </>
+              )}
+
+              {(state.phase === "waiting" || state.phase === "showAnswer") && (
+                <button
+                  onClick={() => {
+                    const ws = new WebSocket(`ws://${window.location.host}/ws/quiz`);
+                    ws.onopen = () => ws.send(JSON.stringify({ type: "host_login", payload: { password: "3251" } }));
+                    ws.onmessage = (e) => { const msg = JSON.parse(e.data); if (msg.type === "host_authenticated" && msg.payload.success) ws.send(JSON.stringify({ type: "restart_game" })); };
+                    setTimeout(() => ws.close(), 2000);
+                  }}
+                  style={{ padding: "16px 24px", fontSize: "18px", fontWeight: "bold", color: "#4ade80", backgroundColor: "#064e3b", border: "2px solid #22c55e", borderRadius: "8px", cursor: "pointer" }}
+                >🔄 重启比赛</button>
               )}
             </div>
 
             {/* 题目显示 */}
-            {(state.phase === "answering" ||
-              state.phase === "showAnswer" ||
-              state.phase === "countdown") &&
+            {(state.phase === "answering" || state.phase === "showAnswer" || state.phase === "countdown") &&
               state.currentQuestionData && (
                 <Card className="bg-gray-800 border-gray-700">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Badge
-                          className={`${getDifficultyLabel(state.currentQuestionData.difficulty).color}`}
-                        >
+                        <Badge className={`${getDifficultyLabel(state.currentQuestionData.difficulty).color}`}>
                           {getDifficultyLabel(state.currentQuestionData.difficulty).text}
                         </Badge>
                         <span className="text-gray-400 text-sm">
-                          第 {state.currentQuestionData.index + 1} /{" "}
-                          {state.currentQuestionData.total} 题
+                          第 {state.currentQuestionData.index + 1} / {state.currentQuestionData.total} 题
                         </span>
                       </div>
-                      <span className="text-yellow-400 font-bold">
-                        {state.currentQuestionData.points}分
-                      </span>
+                      <span className="text-yellow-400 font-bold">{state.currentQuestionData.points}分</span>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-xl font-medium text-white mb-6">
-                      {state.currentQuestionData.question}
-                    </p>
+                    <p className="text-xl font-medium text-white mb-6">{state.currentQuestionData.question}</p>
 
-                    {/* 选项 */}
                     <div className="space-y-3">
                       {state.currentQuestionData.options.map((option, index) => {
-                        const isCorrect =
-                          "correctAnswer" in state.currentQuestionData! &&
-                          state.currentQuestionData.correctAnswer === index;
-                        const showCorrect =
-                          state.phase === "showAnswer" && isCorrect;
-
+                        const isCorrect = "correctAnswer" in state.currentQuestionData! && state.currentQuestionData.correctAnswer === index;
+                        const showCorrect = state.phase === "showAnswer" && isCorrect;
                         return (
-                          <div
-                            key={index}
-                            className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
-                              showCorrect
-                                ? "border-green-500 bg-green-900/30"
-                                : "border-gray-600 bg-gray-700/50"
-                            }`}
-                          >
-                            <span
-                              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                                showCorrect
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-600 text-gray-300"
-                              }`}
-                            >
-                              {showCorrect ? (
-                                <CheckCircle2 className="w-5 h-5" />
-                              ) : (
-                                getOptionLabel(index)
-                              )}
+                          <div key={index} className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
+                            showCorrect ? "border-green-500 bg-green-900/30" : "border-gray-600 bg-gray-700/50"
+                          }`}>
+                            <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                              showCorrect ? "bg-green-500 text-white" : "bg-gray-600 text-gray-300"
+                            }`}>
+                              {showCorrect ? <CheckCircle2 className="w-5 h-5" /> : getOptionLabel(index)}
                             </span>
                             <span className="text-gray-200">{option}</span>
-                            {showCorrect && (
-                              <Badge className="ml-auto bg-green-600 text-white">
-                                正确答案
-                              </Badge>
-                            )}
+                            {showCorrect && <Badge className="ml-auto bg-green-600 text-white">正确答案</Badge>}
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* 答题统计 */}
                     {state.phase === "answering" && (
                       <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
                         <div className="flex items-center justify-between">
-                          <span className="text-blue-300 text-sm">
-                            已答题人数
-                          </span>
-                          <span className="text-blue-200 font-bold">
-                            {state.answeredCount} / {state.playerCount}
-                          </span>
+                          <span className="text-blue-300 text-sm">已答题人数</span>
+                          <span className="text-blue-200 font-bold">{state.answeredCount} / {state.playerCount}</span>
                         </div>
-                        <Progress
-                          value={
-                            state.playerCount > 0
-                              ? (state.answeredCount / state.playerCount) * 100
-                              : 0
-                          }
-                          className="mt-2 h-2"
-                        />
+                        <Progress value={state.playerCount > 0 ? (state.answeredCount / state.playerCount) * 100 : 0} className="mt-2 h-2" />
                       </div>
                     )}
                   </CardContent>
@@ -410,8 +308,7 @@ export default function Host() {
             <Card className="bg-gray-800 border-gray-700 sticky top-6">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <Trophy className="w-5 h-5 text-yellow-400" />
-                  实时积分榜
+                  <Trophy className="w-5 h-5 text-yellow-400" /> 实时积分榜
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -424,28 +321,15 @@ export default function Host() {
                 ) : (
                   <div className="space-y-2 max-h-[600px] overflow-y-auto">
                     {state.leaderboard.map((entry) => (
-                      <div
-                        key={entry.rank}
-                        className={`flex items-center gap-3 p-3 rounded-lg ${
-                          entry.rank <= 3
-                            ? "bg-yellow-900/20 border border-yellow-700/30"
-                            : "bg-gray-700/50"
-                        }`}
-                      >
-                        <div className="w-8 h-8 flex items-center justify-center">
-                          {getRankIcon(entry.rank)}
-                        </div>
+                      <div key={entry.rank} className={`flex items-center gap-3 p-3 rounded-lg ${
+                        entry.rank <= 3 ? "bg-yellow-900/20 border border-yellow-700/30" : "bg-gray-700/50"
+                      }`}>
+                        <div className="w-8 h-8 flex items-center justify-center">{getRankIcon(entry.rank)}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white truncate">
-                            {entry.name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            答对 {entry.correctCount} 题
-                          </p>
+                          <p className="font-medium text-white truncate">{entry.name}</p>
+                          <p className="text-xs text-gray-400">答对 {entry.correctCount} 题</p>
                         </div>
-                        <span className="font-bold text-yellow-400">
-                          {entry.score}分
-                        </span>
+                        <span className="font-bold text-yellow-400">{entry.score}分</span>
                       </div>
                     ))}
                   </div>
@@ -460,8 +344,7 @@ export default function Host() {
           <Card className="bg-gray-800 border-gray-700 mt-6">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2 text-white">
-                <Trophy className="w-6 h-6 text-yellow-400" />
-                最终排行榜
+                <Trophy className="w-6 h-6 text-yellow-400" /> 最终排行榜
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -470,38 +353,17 @@ export default function Host() {
                   <TableRow className="border-gray-700">
                     <TableHead className="text-gray-400">排名</TableHead>
                     <TableHead className="text-gray-400">姓名</TableHead>
-                    <TableHead className="text-gray-400 text-right">
-                      答对题数
-                    </TableHead>
-                    <TableHead className="text-gray-400 text-right">
-                      总得分
-                    </TableHead>
+                    <TableHead className="text-gray-400 text-right">答对题数</TableHead>
+                    <TableHead className="text-gray-400 text-right">总得分</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {state.leaderboard.map((entry) => (
-                    <TableRow
-                      key={entry.rank}
-                      className={`border-gray-700 ${
-                        entry.rank <= 3 ? "bg-yellow-900/10" : ""
-                      }`}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getRankIcon(entry.rank)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium text-white">
-                        {entry.name}
-                      </TableCell>
-                      <TableCell className="text-right text-gray-300">
-                        {entry.correctCount} / {state.totalQuestions}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-bold text-yellow-400 text-lg">
-                          {entry.score}
-                        </span>
-                      </TableCell>
+                    <TableRow key={entry.rank} className={`border-gray-700 ${entry.rank <= 3 ? "bg-yellow-900/10" : ""}`}>
+                      <TableCell><div className="flex items-center gap-2">{getRankIcon(entry.rank)}</div></TableCell>
+                      <TableCell className="font-medium text-white">{entry.name}</TableCell>
+                      <TableCell className="text-right text-gray-300">{entry.correctCount} / {state.totalQuestions}</TableCell>
+                      <TableCell className="text-right"><span className="font-bold text-yellow-400 text-lg">{entry.score}</span></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

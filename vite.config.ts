@@ -4,7 +4,7 @@ const __dirname = import.meta.dirname
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
-import { WebSocketServer } from "ws"
+import { WebSocketServer, WebSocket as WsWebSocket } from "ws"
 import { questions } from "./api/quiz/questions"
 import {
   getGameState,
@@ -22,13 +22,13 @@ import {
   exportResults,
 } from "./api/quiz/gameState"
 
-const clients = new Map<string, WebSocket>()
-const hostClients = new Set<WebSocket>()
+const clients = new Map<string, WsWebSocket>()
+const hostClients = new Set<WsWebSocket>()
 
 function broadcast(data: any) {
   const message = JSON.stringify(data)
   clients.forEach((ws) => {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WsWebSocket.OPEN) {
       ws.send(message)
     }
   })
@@ -37,7 +37,7 @@ function broadcast(data: any) {
 function broadcastToHost(data: any) {
   const message = JSON.stringify(data)
   hostClients.forEach((ws) => {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WsWebSocket.OPEN) {
       ws.send(message)
     }
   })
@@ -45,7 +45,7 @@ function broadcastToHost(data: any) {
 
 function sendTo(clientId: string, data: any) {
   const ws = clients.get(clientId)
-  if (ws && ws.readyState === WebSocket.OPEN) {
+  if (ws && ws.readyState === WsWebSocket.OPEN) {
     ws.send(JSON.stringify(data))
   }
 }
@@ -159,10 +159,17 @@ function handleEndRound() {
     },
   })
 
+  state.answersThisRound.forEach((_, playerId) => {
+    const player = state.players.get(playerId)
+    if (player) {
+      sendTo(playerId, { type: "player_score", payload: { score: player.score, name: player.name } })
+    }
+  })
+
   broadcastToHost({ type: "game_snapshot", payload: getGameSnapshot() })
 }
 
-function handleMessage(clientId: string, ws: WebSocket, message: any) {
+function handleMessage(clientId: string, ws: WsWebSocket, message: any) {
   const state = getGameState()
 
   switch (message.type) {
@@ -326,7 +333,11 @@ function handleMessage(clientId: string, ws: WebSocket, message: any) {
         roundTimer = null
       }
       finishGame()
+      const state = getGameState()
       broadcast({ type: "game_finished", payload: { leaderboard: getLeaderboard() } })
+      state.players.forEach((player, playerId) => {
+        sendTo(playerId, { type: "player_score", payload: { score: player.score, name: player.name } })
+      })
       broadcastToHost({ type: "game_snapshot", payload: getGameSnapshot() })
       break
     }
@@ -335,6 +346,22 @@ function handleMessage(clientId: string, ws: WebSocket, message: any) {
       if (!hostClients.has(ws)) return
       const results = exportResults()
       ws.send(JSON.stringify({ type: "export_data", payload: { data: results } }))
+      break
+    }
+
+    case "restart_game": {
+      if (!hostClients.has(ws)) return
+      if (roundTimer) {
+        clearTimeout(roundTimer)
+        roundTimer = null
+      }
+      if (countdownInterval) {
+        clearInterval(countdownInterval)
+        countdownInterval = null
+      }
+      resetGameState(questions)
+      broadcast({ type: "game_restarted", payload: getGameSnapshot() })
+      broadcastToHost({ type: "game_snapshot", payload: getGameSnapshot() })
       break
     }
 
@@ -360,21 +387,22 @@ export default defineConfig({
           if (url.pathname === "/ws/quiz") {
             const wss = new WebSocketServer({ noServer: true })
             wss.handleUpgrade(request, socket, head, (ws) => {
+              const w = ws as unknown as WsWebSocket
               const clientId = crypto.randomUUID()
-              clients.set(clientId, ws)
+              clients.set(clientId, w)
 
-              ws.on("message", (rawData) => {
+              w.on("message", (rawData) => {
                 try {
                   const message = JSON.parse(rawData.toString())
-                  handleMessage(clientId, ws, message)
+                  handleMessage(clientId, w, message)
                 } catch (e) {
-                  ws.send(JSON.stringify({ type: "error", payload: "Invalid message format" }))
+                  w.send(JSON.stringify({ type: "error", payload: "Invalid message format" }))
                 }
               })
 
-              ws.on("close", () => {
+              w.on("close", () => {
                 clients.delete(clientId)
-                hostClients.delete(ws)
+                hostClients.delete(w)
                 disconnectPlayer(clientId)
                 broadcast({
                   type: "player_left",
@@ -382,7 +410,7 @@ export default defineConfig({
                 })
               })
 
-              ws.send(JSON.stringify({ type: "connected", payload: { clientId } }))
+              w.send(JSON.stringify({ type: "connected", payload: { clientId } }))
             })
           }
         })

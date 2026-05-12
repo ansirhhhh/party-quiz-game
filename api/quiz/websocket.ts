@@ -1,4 +1,3 @@
-import type { Server } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { questions } from "./questions";
 import {
@@ -6,7 +5,6 @@ import {
   resetGameState,
   addPlayer,
   disconnectPlayer,
-  reconnectPlayer,
   verifyHostPassword,
   setPhase,
   startRound,
@@ -16,7 +14,6 @@ import {
   finishGame,
   getLeaderboard,
   exportResults,
-  type Player,
 } from "./gameState";
 
 // 客户端连接映射
@@ -107,7 +104,7 @@ function getGameSnapshot() {
 }
 
 // 初始化WebSocket服务器
-export function initQuizWebSocket(server: Server) {
+export function initQuizWebSocket(server: import("node:http").Server) {
   const wss = new WebSocketServer({
     server,
     path: "/ws/quiz",
@@ -224,6 +221,17 @@ export function initQuizWebSocket(server: Server) {
         leaderboard: getLeaderboard(),
         answersCount: state.answersThisRound.size,
       },
+    });
+
+    // 向每位答了题的玩家发送个人分数
+    state.answersThisRound.forEach((_, playerId) => {
+      const player = state.players.get(playerId);
+      if (player) {
+        sendTo(playerId, {
+          type: "player_score",
+          payload: { score: player.score, name: player.name },
+        });
+      }
     });
 
     broadcastToHost({
@@ -454,9 +462,17 @@ export function initQuizWebSocket(server: Server) {
           roundTimer = null;
         }
         finishGame();
+        const state = getGameState();
         broadcast({
           type: "game_finished",
           payload: { leaderboard: getLeaderboard() },
+        });
+        // 向所有玩家发送最终分数
+        state.players.forEach((player, playerId) => {
+          sendTo(playerId, {
+            type: "player_score",
+            payload: { score: player.score, name: player.name },
+          });
         });
         broadcastToHost({
           type: "game_snapshot",
@@ -475,6 +491,29 @@ export function initQuizWebSocket(server: Server) {
             payload: { data: results },
           })
         );
+        break;
+      }
+
+      // 重启比赛
+      case "restart_game": {
+        if (!hostClients.has(ws)) return;
+        if (roundTimer) {
+          clearTimeout(roundTimer);
+          roundTimer = null;
+        }
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        resetGameState(questions);
+        broadcast({
+          type: "game_restarted",
+          payload: getGameSnapshot(),
+        });
+        broadcastToHost({
+          type: "game_snapshot",
+          payload: getGameSnapshot(),
+        });
         break;
       }
 

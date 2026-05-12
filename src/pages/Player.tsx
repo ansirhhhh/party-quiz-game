@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router";
 import { useQuizSocket } from "@/hooks/useQuizSocket";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -25,12 +24,22 @@ export default function Player() {
     playerJoin,
     submitAnswer,
     clearError,
-    connect,
   } = useQuizSocket();
   const [joined, setJoined] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+
+  // 从排行榜中计算自己的分数（比hook中的myScore更可靠）
+  const playerScore = useMemo(() => {
+    if (!state.myName || !state.leaderboard.length) return state.myScore;
+    const myLower = state.myName.trim().toLowerCase();
+    const entry = state.leaderboard.find((e: any) => {
+      const eName = (e.name || "").trim().toLowerCase();
+      return eName === myLower;
+    });
+    return entry ? entry.score : state.myScore;
+  }, [state.myName, state.leaderboard, state.myScore]);
 
   // 加入比赛
   useEffect(() => {
@@ -411,7 +420,7 @@ export default function Player() {
             <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
               <span className="text-sm text-gray-500">我的得分</span>
               <span className="text-xl font-bold text-red-600">
-                {state.myScore}分
+                {playerScore}分
               </span>
             </div>
           </div>

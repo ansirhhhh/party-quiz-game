@@ -46,13 +46,18 @@ let gameState: GameState = {
   hostPassword: "3251",
 };
 
-// 重置游戏状态
+// 重置游戏状态（保留玩家，重置其分数和答题记录）
 export function resetGameState(questions: Question[]) {
+  const existingPlayers = gameState.players;
+  existingPlayers.forEach((player) => {
+    player.score = 0;
+    player.answers = [];
+  });
   gameState = {
     phase: "waiting",
     currentQuestionIndex: 0,
     questions,
-    players: new Map(),
+    players: existingPlayers,
     answersThisRound: new Map(),
     roundStartTime: 0,
     roundEndTime: 0,
@@ -224,6 +229,10 @@ export function getLeaderboard() {
 // 导出比赛结果
 export function exportResults(): string {
   const allPlayers = Array.from(gameState.players.values());
+  // 过滤出有实际参与的玩家：在线、有分数、或有答题记录
+  const activePlayers = allPlayers.filter(
+    (p) => p.connected || p.score > 0 || p.answers.length > 0
+  );
   const leaderboard = getLeaderboard();
   const lines: string[] = [];
   lines.push("=".repeat(50));
@@ -231,7 +240,7 @@ export function exportResults(): string {
   lines.push("=".repeat(50));
   lines.push(`比赛时间: ${new Date().toLocaleString("zh-CN")}`);
   lines.push(`总题目数: ${gameState.questions.length}`);
-  lines.push(`参赛人数: ${allPlayers.length}`);
+  lines.push(`参赛人数: ${activePlayers.length}`);
   lines.push("-".repeat(50));
   lines.push("排行榜:");
   leaderboard.forEach((p, i) => {
@@ -246,17 +255,21 @@ export function exportResults(): string {
     lines.push(`题目: ${q.question}`);
     lines.push(`正确答案: ${String.fromCharCode(65 + q.correctAnswer)}. ${q.options[q.correctAnswer]}`);
     lines.push("答题情况:");
-    allPlayers.forEach((p) => {
-      const ans = p.answers.find((a) => a.questionId === q.id);
-      if (ans) {
-        const status = ans.isCorrect ? "正确" : "错误";
-        lines.push(
-          `  ${p.name}: ${String.fromCharCode(65 + ans.selectedOption)} (${status}, ${ans.timeSpent / 1000}s, ${ans.points}分)`
-        );
-      } else {
-        lines.push(`  ${p.name}: 未作答`);
-      }
-    });
+    if (activePlayers.length === 0) {
+      lines.push("  无选手参与本题");
+    } else {
+      activePlayers.forEach((p) => {
+        const ans = p.answers.find((a) => a.questionId === q.id);
+        if (ans) {
+          const status = ans.isCorrect ? "正确" : "错误";
+          lines.push(
+            `  ${p.name}: ${String.fromCharCode(65 + ans.selectedOption)} (${status}, ${ans.timeSpent / 1000}s, ${ans.points}分)`
+          );
+        } else {
+          lines.push(`  ${p.name}: 未作答`);
+        }
+      });
+    }
   });
   lines.push("\n" + "=".repeat(50));
   return lines.join("\n");
